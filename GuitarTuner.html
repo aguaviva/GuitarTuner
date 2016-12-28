@@ -167,65 +167,61 @@ function draw(buffer, sampleRate)
     DrawPiano(buffer, sampleRate) ;
 };
 
-var bufferSize = 4096;
-
-var audioContext;
-try {
-  window.AudioContext = window.AudioContext || window.webkitAudioContext;
-  audioContext = new AudioContext();
-} catch(e) {
-  alert('Web Audio API is not supported in this browser');
-}
-
-// Check if there is microphone input.
-try {
-  navigator.getUserMedia = navigator.getUserMedia ||
-                           navigator.webkitGetUserMedia ||
-                           navigator.mozGetUserMedia ||
-                           navigator.msGetUserMedia;
-  var hasMicrophoneInput = (navigator.getUserMedia || navigator.webkitGetUserMedia ||
-      navigator.mozGetUserMedia || navigator.msGetUserMedia);
-} catch(e) {
-  alert("getUserMedia() is not supported in your browser");
-}
-
-// Create a pcm processing "node" for the filter graph.
-var bufferSize = 4096;
-var myPCMProcessingNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
-myPCMProcessingNode.onaudioprocess = function(e) {
-  var input = e.inputBuffer.getChannelData(0);
-  var output = e.outputBuffer.getChannelData(0);
-  draw(input,  e.inputBuffer.sampleRate);
-  /*
-  for (var i = 0; i < bufferSize; i++) {
-     // Modify the input and send it to the output.
-     output[i] = myPCMFilterFunction(input[i]);
-  }
-  */
-}
-
-var errorCallback = function(e) {
-  alert("Error in getUserMedia: " + e);
-};  
-
-// Get access to the microphone and start pumping data through the  graph.
-navigator.getUserMedia({audio: true}, function(stream) {
-  // microphone -&gt; myPCMProcessingNode -&gt; destination.
-  var microphone = audioContext.createMediaStreamSource(stream);
-  microphone.connect(myPCMProcessingNode);
-  myPCMProcessingNode.connect(audioContext.destination);
-  
-  //microphone.start(0);
-}, errorCallback);
 
 function init()
 {
     myCanvas = document.getElementById("myCanvas");
     canvasCtx = myCanvas.getContext('2d');    
 
-//        initAudio();
+    var bufferSize = 4096;
 
-//    setInterval(iterate,10); 
+    var audioContext;
+    try 
+    {
+        window.AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioContext = new AudioContext();
+    } 
+    catch(e) 
+    {
+        alert('Web Audio API is not supported in this browser');
+    }
+
+    // Check if there is microphone input.
+    try 
+    {
+        navigator.getUserMedia = navigator.getUserMedia ||
+                                 navigator.webkitGetUserMedia ||
+                                 navigator.mozGetUserMedia ||
+                                 navigator.msGetUserMedia;
+        var hasMicrophoneInput = (navigator.getUserMedia || navigator.webkitGetUserMedia || navigator.mozGetUserMedia || navigator.msGetUserMedia);
+    } 
+    catch(e) 
+    {
+        alert("getUserMedia() is not supported in your browser");
+    }
+
+    // Create a pcm processing "node" for the filter graph.
+    var bufferSize = 4096;
+    var myPCMProcessingNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
+    myPCMProcessingNode.onaudioprocess = function(e) 
+    {
+        var input = e.inputBuffer.getChannelData(0);
+        var output = e.outputBuffer.getChannelData(0);
+        draw(input,  e.inputBuffer.sampleRate);
+    }
+
+    var errorCallback = function(e) 
+    {
+        alert("Error in getUserMedia: " + e);
+    };  
+
+    // Get access to the microphone and start pumping data through the  graph.
+    navigator.getUserMedia({audio: true}, function(stream) 
+    {
+        var microphone = audioContext.createMediaStreamSource(stream);
+        microphone.connect(myPCMProcessingNode);
+        myPCMProcessingNode.connect(audioContext.destination);
+    }, errorCallback);
 }
 </script>
 
