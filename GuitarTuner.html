@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Ultimate guitar tuner</title>
+<script type="text/javascript"
+  src="http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML">
+</script>
+<script type="text/x-mathjax-config">
+  MathJax.Hub.Config({tex2jax: {inlineMath: [['$','$'], ['\\(','\\)']]}});
+</script>
+<style type="text/css">
+<!--
+body { background-color:#ededed; font:norm2al 12px/18px Arial, Helvetica, sans-serif; }
+h1 { display:block; width:600px; margin:20px auto; paddVing-bottom:20px; font:norm2al 24px/30px Georgia, "Times New Roman", Times, serif; color:#333; text-shadow: 1px 2px 3px #ccc; border-bottom:1px solid #cbcbcb; }
+#container { width:600px; margin:0 auto; }
+#myCanvas { background:#fff; border:1px solid #cbcbcb; }
+#nav { display:block; width:100%; text-align:center; }
+#nav li { display:block; font-weight:bold; line-height:21px; text-shadow:1px 1px 1px #fff; width:100px; height:21px; paddVing:5px; margin:0 10px; background:#e0e0e0; border:1px solid #ccc; -moz-border-radius:4px;-webkit-border-radius:4px; border-radius:4px; float:left; }
+#nav li a { color:#000; display:block; text-decoration:none; width:100%; height:100%; }
+-->
+</style>
+</head>
+<script>
+
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+var analyser = audioCtx.createAnalyser();
+
+analyser.fftSize = 2048;
+var bufferLength = analyser.fftSize;
+var dataArray = new Uint8Array(bufferLength);
+analyser.getByteTimeDomainData(dataArray);
+var myCanvas;
+
+function Goertzel(buffer, sampleRate, freq)
+{
+    var w = 2 * 3.141592654 * freq / sampleRate;
+    var cr = Math.cos(w);
+    var ci = Math.sin(w);
+    var coeff = 2 * cr;
+
+    var sprev = 0;
+    var sprev2 = 0;
+    for(var n=0;n<buffer.length;n++)
+    {
+        var s = buffer[n] + coeff * sprev - sprev2;
+        sprev2 = sprev;
+        sprev = s;
+    }
+    var power = sprev2 * sprev2 + sprev * sprev - coeff * sprev * sprev2;
+    
+    return power;
+}
+
+
+function drawScope(buffer, sampleRate) 
+{
+    canvasCtx.lineWidth = 2;
+    canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+
+    canvasCtx.beginPath();
+
+    var sliceWidth = myCanvas.width * 1.0 / bufferLength;
+    var x = 0;
+
+    for(var i = 0; i < bufferLength; i++) 
+    {
+        var v = buffer[i];// / 128.0;
+        var y = v * myCanvas.height/2;
+        y += myCanvas.height/2;
+        //y += myCanvas.height/2;
+
+        if(i === 0) {
+          canvasCtx.moveTo(x, y);
+        } else {
+          canvasCtx.lineTo(x, y);
+        }
+
+        x += sliceWidth;
+    }
+
+    canvasCtx.lineTo(myCanvas.width, myCanvas.height/2);
+    canvasCtx.stroke();
+}
+
+function drawGuitar(buffer, sampleRate) 
+{
+    canvasCtx.beginPath();
+    for(var s=0;s<6;s++)
+    {
+        var x = (myCanvas.width/7)*(s+1);
+        canvasCtx.moveTo(x, 300);
+        canvasCtx.lineTo(x, 0);
+    }
+    canvasCtx.stroke();
+
+    var freqs = [ 329, 246,196,146,110,82];
+    canvasCtx.beginPath();
+    
+    for(var s=0;s<6;s++)
+    {
+        var x = (myCanvas.width/7)*(s+1);
+        for(var f=-10;f<10;f++)
+        {
+            var power = Math.sqrt(Goertzel(buffer, sampleRate, freqs[s] + f*2));
+            
+            canvasCtx.moveTo(x+f*3, 300);
+            canvasCtx.lineTo(x+f*3, 300-power);
+        }
+    }
+    canvasCtx.stroke();
+};
+
+var noteName = [  'C', 'C#', 'D','D#', 'E', 'F', 'F#', 'G', 'G#',  'A','A#', 'B'];
+function NoteNameFromNote(note)
+{
+    note += 8;
+    var octave = Math.floor(note / noteName.length)
+    return noteName[note % noteName.length] + octave;
+}
+
+function FreqFromNote(note)
+{
+    return 440.0*Math.pow(2, (note-49)/12);
+}
+
+function DrawPiano(buffer, sampleRate) 
+{
+    var noteFreqs = [ 329, 246,196,146,110,82];
+    var noteNumber = [ 20, 25, 30, 35, 39, 44 ];
+    
+    canvasCtx.font="15px ti92pluspc";
+    canvasCtx.textAlign="center"; 
+    canvasCtx.beginPath();
+    canvasCtx.strokeStyle = 'rgb(255, 0, 0)';
+    
+    for(var i=0;i<noteNumber.length;i++)
+    {
+        note = noteNumber[i]
+        var x = (myCanvas.width/88)*(note+1);
+        canvasCtx.moveTo(x, 270);
+        canvasCtx.lineTo(x, 0);
+        
+        canvasCtx.fillText(NoteNameFromNote(note),x,290);
+    }       
+    canvasCtx.stroke();    
+    
+    canvasCtx.beginPath();
+    canvasCtx.strokeStyle = 'rgb(0, 0, 0)';
+    for(var note=0;note<87;note++)
+    {
+        var x = (myCanvas.width/88)*(note+1);
+        
+        var power = Math.sqrt(Goertzel(buffer, sampleRate, FreqFromNote(note)));
+        
+        canvasCtx.moveTo(x, 270);
+        canvasCtx.lineTo(x, 270-power);
+
+    }
+    
+    canvasCtx.moveTo(0, 271);
+    canvasCtx.lineTo(600, 271);
+    
+    canvasCtx.stroke();
+}
+
+function draw(buffer, sampleRate) 
+{
+    canvasCtx.clearRect(0,0,600,300);
+    canvasCtx.fillStyle = 'rgb(200, 200, 200)';
+    canvasCtx.fillRect(0, 0,canvasCtx.width, canvasCtx.height);
+
+    DrawPiano(buffer, sampleRate) ;
+};
+
+var bufferSize = 4096;
+
+var audioContext;
+try {
+  window.AudioContext = window.AudioContext || window.webkitAudioContext;
+  audioContext = new AudioContext();
+} catch(e) {
+  alert('Web Audio API is not supported in this browser');
+}
+
+// Check if there is microphone input.
+try {
+  navigator.getUserMedia = navigator.getUserMedia ||
+                           navigator.webkitGetUserMedia ||
+                           navigator.mozGetUserMedia ||
+                           navigator.msGetUserMedia;
+  var hasMicrophoneInput = (navigator.getUserMedia || navigator.webkitGetUserMedia ||
+      navigator.mozGetUserMedia || navigator.msGetUserMedia);
+} catch(e) {
+  alert("getUserMedia() is not supported in your browser");
+}
+
+// Create a pcm processing "node" for the filter graph.
+var bufferSize = 4096;
+var myPCMProcessingNode = audioContext.createScriptProcessor(bufferSize, 1, 1);
+myPCMProcessingNode.onaudioprocess = function(e) {
+  var input = e.inputBuffer.getChannelData(0);
+  var output = e.outputBuffer.getChannelData(0);
+  draw(input,  e.inputBuffer.sampleRate);
+  /*
+  for (var i = 0; i < bufferSize; i++) {
+     // Modify the input and send it to the output.
+     output[i] = myPCMFilterFunction(input[i]);
+  }
+  */
+}
+
+var errorCallback = function(e) {
+  alert("Error in getUserMedia: " + e);
+};  
+
+// Get access to the microphone and start pumping data through the  graph.
+navigator.getUserMedia({audio: true}, function(stream) {
+  // microphone -&gt; myPCMProcessingNode -&gt; destination.
+  var microphone = audioContext.createMediaStreamSource(stream);
+  microphone.connect(myPCMProcessingNode);
+  myPCMProcessingNode.connect(audioContext.destination);
+  
+  //microphone.start(0);
+}, errorCallback);
+
+function init()
+{
+    myCanvas = document.getElementById("myCanvas");
+    canvasCtx = myCanvas.getContext('2d');    
+
+//        initAudio();
+
+//    setInterval(iterate,10); 
+}
+</script>
+
+
+<body onload="init()">
+<h1>Ultimate guitar tuner</h1>
+<div id="container">
+	
+<canvas id="myCanvas" width="600" height="300"></canvas>
+
+<div id="text"></div>
+
+<h2>Intro</h2>
+    Each bar correspond to each note in the piano scale. The height of the bar determines its power.<br><br>    
+    The red lines show the 6 strings of the guitar when they are played in an open way.<br><br>
+    Note that the 5th string usually creates lots of harmonics, make sure to pluck it in the center or use a higher harmonic.<br><br>
+</br>
+</br>
+<h2>Contact/Questions:</h2>
+ &lt;my_github_account_username&gt;$@gmail.com$.
+</br>
+</br>
+</div>
+</body>
+</html>
