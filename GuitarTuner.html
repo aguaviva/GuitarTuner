@@ -157,7 +157,6 @@ function DrawPiano(buffer, sampleRate)
         
         canvasCtx.moveTo(x, 270);
         canvasCtx.lineTo(x, 270-power);
-
     }
     
     canvasCtx.moveTo(0, 271);
@@ -175,6 +174,7 @@ function draw(buffer, sampleRate)
     DrawPiano(buffer, sampleRate) ;
 };
 
+var audioContext;
 
 function init()
 {
@@ -183,7 +183,6 @@ function init()
 
     var bufferSize = 4096;
 
-    var audioContext;
     try 
     {
         window.AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -218,6 +217,13 @@ function init()
         draw(input,  e.inputBuffer.sampleRate);
     }
 
+    canvasCtx.fillStyle = "black";
+    canvasCtx.textAlign="center"; 
+    canvasCtx.textBaseline="middle";
+    canvasCtx.font="40px arial";
+    canvasCtx.fillText("Click to start",myCanvas.width/2,myCanvas.height/2);
+
+
     var errorCallback = function(e) 
     {
         alert("Error in getUserMedia: " + e);
@@ -237,17 +243,17 @@ function init()
 <body onload="init()">
 <h1>Ultimate Online Guitar Tuner</h1>
 <div id="container">
-	
-<canvas id="myCanvas" width="600" height="300"></canvas>
+
+<canvas id="myCanvas" onclick="audioContext.resume()" width="600" height="300"></canvas>
 
 <div id="text"></div>
 
-<h2>Quick start</h2>
+<h2>Instructions:</h2>
     <ul>
     <li>Each bar correspond to each note in the piano scale.</li>
     <li>The height of the bar determines the note's power.</li>
-    <li>The red lines show the notes of the 6 strings when played open.</li>
-    <li>The 5th string is always tricky to tune, try tunning it by placing your finger on the 10th fret, that should give you a D3.</li>
+    <li>The red lines show the notes of the 6 strings of the guitar when played open.</li>
+    <li>The 6th string is always tricky to tune, try tunning it by placing your finger on the 10th fret, that should give you a D3.</li>
     </ul>
     
  Fun fact, I din't like other tuners so I wrote my own.
